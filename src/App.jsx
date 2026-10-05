@@ -851,217 +851,104 @@ function WorkersPage({ workers, reload, showToast }) {
   );
 }
 
-function ReportsPage() {
-  const [workers, setWorkers] = useState([]);
-  const [settlements, setSettlements] = useState([]);
-  const [loading, setLoading] = useState(true);
+function ReportsPage({ settlements }) {
+  const workerMap = {};
 
-  useEffect(() => {
-    loadReports();
-  }, []);
-
-  async function loadReports() {
-    setLoading(true);
-
-    const [{ data: workerData, error: workerError }, { data: settlementData, error: settlementError }] =
-      await Promise.all([
-        supabase.from("workers").select("*").order("name"),
-        supabase
-          .from("settlements")
-          .select(`
-            id,
-            work_date,
-            total_income,
-            diesel_expense,
-            owner_share,
-            workers_share,
-            settlement_workers (
-              id,
-              worker_id,
-              worker_name,
-              wage_amount,
-              payment_status
-            )
-          `)
-          .order("work_date", { ascending: false }),
-      ]);
-
-    if (workerError) {
-      console.error("Workers error:", workerError);
-    }
-
-    if (settlementError) {
-      console.error("Settlements error:", settlementError);
-    }
-
-    setWorkers(workerData || []);
-    setSettlements(settlementData || []);
-    setLoading(false);
-  }
-
-  // Calculate individual worker earnings from ALL settlement records
-  const workerReports = workers.map((worker) => {
-    let totalEarnings = 0;
-    let daysWorked = 0;
-    let paidAmount = 0;
-    let pendingAmount = 0;
-
-    settlements.forEach((settlement) => {
-      const workerRecord = settlement.settlement_workers?.find(
-        (item) => item.worker_id === worker.id
-      );
-
-      if (workerRecord) {
-        const amount = Number(workerRecord.wage_amount || 0);
-
-        totalEarnings += amount;
-        daysWorked += 1;
-
-        if (workerRecord.payment_status === "paid") {
-          paidAmount += amount;
-        } else {
-          pendingAmount += amount;
-        }
-      }
-    });
-
-    return {
-      id: worker.id,
-      name: worker.name,
-      phone: worker.phone || "-",
-      daysWorked,
-      totalEarnings,
-      paidAmount,
-      pendingAmount,
-    };
-  });
-
-  // Also include historical workers whose master record may have been deleted
-  const historicalWorkers = {};
-
+  // Get worker earnings from all saved settlement records
   settlements.forEach((settlement) => {
-    settlement.settlement_workers?.forEach((worker) => {
-      if (!workerReports.some((item) => item.id === worker.worker_id)) {
-        if (!historicalWorkers[worker.worker_id]) {
-          historicalWorkers[worker.worker_id] = {
-            id: worker.worker_id,
-            name: worker.worker_name,
-            phone: "-",
-            daysWorked: 0,
-            totalEarnings: 0,
-            paidAmount: 0,
-            pendingAmount: 0,
-          };
-        }
+    const workers = settlement.settlement_workers || [];
 
-        const item = historicalWorkers[worker.worker_id];
-        const amount = Number(worker.wage_amount || 0);
+    workers.forEach((worker) => {
+      const id = worker.worker_id || worker.worker_name;
 
-        item.daysWorked += 1;
-        item.totalEarnings += amount;
+      if (!workerMap[id]) {
+        workerMap[id] = {
+          id,
+          name: worker.worker_name || "Unknown Worker",
+          daysWorked: 0,
+          totalEarnings: 0,
+          paidAmount: 0,
+          pendingAmount: 0,
+        };
+      }
 
-        if (worker.payment_status === "paid") {
-          item.paidAmount += amount;
-        } else {
-          item.pendingAmount += amount;
-        }
+      const amount = Number(worker.wage_amount || 0);
+
+      workerMap[id].daysWorked += 1;
+      workerMap[id].totalEarnings += amount;
+
+      if (worker.payment_status === "paid") {
+        workerMap[id].paidAmount += amount;
+      } else {
+        workerMap[id].pendingAmount += amount;
       }
     });
   });
 
-  const allWorkerReports = [
-    ...workerReports,
-    ...Object.values(historicalWorkers),
-  ].sort((a, b) => b.totalEarnings - a.totalEarnings);
+  const workerReports = Object.values(workerMap).sort(
+    (a, b) => b.totalEarnings - a.totalEarnings
+  );
 
-  const totalWorkerEarnings = allWorkerReports.reduce(
+  const totalEarnings = workerReports.reduce(
     (sum, worker) => sum + worker.totalEarnings,
     0
   );
 
-  const totalPaid = allWorkerReports.reduce(
+  const totalPaid = workerReports.reduce(
     (sum, worker) => sum + worker.paidAmount,
     0
   );
 
-  const totalPending = allWorkerReports.reduce(
+  const totalPending = workerReports.reduce(
     (sum, worker) => sum + worker.pendingAmount,
     0
   );
 
-  const totalWorkDays = settlements.length;
-
-  if (loading) {
-    return (
-      <div className="page">
-        <div className="card">
-          <p>Loading reports...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="page">
-      <div className="page-header">
-        <div>
-          <h1>Worker Reports</h1>
-          <p>Individual worker earnings across all recorded work days.</p>
-        </div>
+    <div>
+      {/* Report Summary */}
+      <div className="stat-grid">
+        <StatCard
+          icon={<Users />}
+          label="Total Workers"
+          value={workerReports.length}
+        />
 
-        <button className="secondary-button" onClick={loadReports}>
-          Refresh
-        </button>
+        <StatCard
+          icon={<CalendarDays />}
+          label="Total Work Days"
+          value={settlements.length}
+        />
+
+        <StatCard
+          icon={<CircleDollarSign />}
+          label="Total Worker Earnings"
+          value={money(totalEarnings)}
+        />
+
+        <StatCard
+          icon={<WalletCards />}
+          label="Pending Wages"
+          value={money(totalPending)}
+        />
       </div>
 
-      {/* Summary */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <span>Total Work Days</span>
-          <strong>{totalWorkDays}</strong>
-        </div>
-
-        <div className="stat-card">
-          <span>Workers</span>
-          <strong>{allWorkerReports.length}</strong>
-        </div>
-
-        <div className="stat-card">
-          <span>Total Worker Earnings</span>
-          <strong>
-            ₹{totalWorkerEarnings.toLocaleString("en-IN", {
-              maximumFractionDigits: 2,
-            })}
-          </strong>
-        </div>
-
-        <div className="stat-card">
-          <span>Pending Wages</span>
-          <strong>
-            ₹{totalPending.toLocaleString("en-IN", {
-              maximumFractionDigits: 2,
-            })}
-          </strong>
-        </div>
-      </div>
-
-      {/* Worker-wise report */}
-      <div className="card">
-        <div className="card-header">
+      {/* Worker Earnings Table */}
+      <section className="card">
+        <div className="section-head">
           <div>
-            <h2>Individual Worker Earnings</h2>
-            <p>All-time earnings from every recorded settlement.</p>
+            <h3>Individual Worker Earnings</h3>
+            <p className="muted">
+              Total earnings from all recorded work days
+            </p>
           </div>
         </div>
 
-        {allWorkerReports.length === 0 ? (
-          <div className="empty-state">
-            <h3>No worker earnings yet</h3>
-            <p>Complete a daily settlement to see worker earnings here.</p>
-          </div>
+        {workerReports.length === 0 ? (
+          <EmptyState text="No worker earnings available yet." />
         ) : (
           <div className="table-wrap">
-            <table className="data-table">
+            <table>
               <thead>
                 <tr>
                   <th>#</th>
@@ -1074,8 +961,8 @@ function ReportsPage() {
               </thead>
 
               <tbody>
-                {allWorkerReports.map((worker, index) => (
-                  <tr key={worker.id || `${worker.name}-${index}`}>
+                {workerReports.map((worker, index) => (
+                  <tr key={worker.id}>
                     <td>{index + 1}</td>
 
                     <td>
@@ -1083,36 +970,20 @@ function ReportsPage() {
                     </td>
 
                     <td>
-                      <span className="badge">
-                        {worker.daysWorked} days
-                      </span>
+                      {worker.daysWorked} day
+                      {worker.daysWorked !== 1 ? "s" : ""}
                     </td>
 
                     <td>
-                      <strong>
-                        ₹
-                        {worker.totalEarnings.toLocaleString("en-IN", {
-                          maximumFractionDigits: 2,
-                        })}
-                      </strong>
+                      <strong>{money(worker.totalEarnings)}</strong>
                     </td>
 
                     <td>
-                      <span className="status-paid">
-                        ₹
-                        {worker.paidAmount.toLocaleString("en-IN", {
-                          maximumFractionDigits: 2,
-                        })}
-                      </span>
+                      {money(worker.paidAmount)}
                     </td>
 
                     <td>
-                      <span className="status-pending">
-                        ₹
-                        {worker.pendingAmount.toLocaleString("en-IN", {
-                          maximumFractionDigits: 2,
-                        })}
-                      </span>
+                      {money(worker.pendingAmount)}
                     </td>
                   </tr>
                 ))}
@@ -1122,32 +993,17 @@ function ReportsPage() {
                 <tr>
                   <th colSpan="3">TOTAL</th>
 
-                  <th>
-                    ₹
-                    {totalWorkerEarnings.toLocaleString("en-IN", {
-                      maximumFractionDigits: 2,
-                    })}
-                  </th>
+                  <th>{money(totalEarnings)}</th>
 
-                  <th>
-                    ₹
-                    {totalPaid.toLocaleString("en-IN", {
-                      maximumFractionDigits: 2,
-                    })}
-                  </th>
+                  <th>{money(totalPaid)}</th>
 
-                  <th>
-                    ₹
-                    {totalPending.toLocaleString("en-IN", {
-                      maximumFractionDigits: 2,
-                    })}
-                  </th>
+                  <th>{money(totalPending)}</th>
                 </tr>
               </tfoot>
             </table>
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }
