@@ -851,7 +851,306 @@ function WorkersPage({ workers, reload, showToast }) {
   );
 }
 
-function ReportsPage({ settlements }) {
+function ReportsPage() {
+  const [workers, setWorkers] = useState([]);
+  const [settlements, setSettlements] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadReports();
+  }, []);
+
+  async function loadReports() {
+    setLoading(true);
+
+    const [{ data: workerData, error: workerError }, { data: settlementData, error: settlementError }] =
+      await Promise.all([
+        supabase.from("workers").select("*").order("name"),
+        supabase
+          .from("settlements")
+          .select(`
+            id,
+            work_date,
+            total_income,
+            diesel_expense,
+            owner_share,
+            workers_share,
+            settlement_workers (
+              id,
+              worker_id,
+              worker_name,
+              wage_amount,
+              payment_status
+            )
+          `)
+          .order("work_date", { ascending: false }),
+      ]);
+
+    if (workerError) {
+      console.error("Workers error:", workerError);
+    }
+
+    if (settlementError) {
+      console.error("Settlements error:", settlementError);
+    }
+
+    setWorkers(workerData || []);
+    setSettlements(settlementData || []);
+    setLoading(false);
+  }
+
+  // Calculate individual worker earnings from ALL settlement records
+  const workerReports = workers.map((worker) => {
+    let totalEarnings = 0;
+    let daysWorked = 0;
+    let paidAmount = 0;
+    let pendingAmount = 0;
+
+    settlements.forEach((settlement) => {
+      const workerRecord = settlement.settlement_workers?.find(
+        (item) => item.worker_id === worker.id
+      );
+
+      if (workerRecord) {
+        const amount = Number(workerRecord.wage_amount || 0);
+
+        totalEarnings += amount;
+        daysWorked += 1;
+
+        if (workerRecord.payment_status === "paid") {
+          paidAmount += amount;
+        } else {
+          pendingAmount += amount;
+        }
+      }
+    });
+
+    return {
+      id: worker.id,
+      name: worker.name,
+      phone: worker.phone || "-",
+      daysWorked,
+      totalEarnings,
+      paidAmount,
+      pendingAmount,
+    };
+  });
+
+  // Also include historical workers whose master record may have been deleted
+  const historicalWorkers = {};
+
+  settlements.forEach((settlement) => {
+    settlement.settlement_workers?.forEach((worker) => {
+      if (!workerReports.some((item) => item.id === worker.worker_id)) {
+        if (!historicalWorkers[worker.worker_id]) {
+          historicalWorkers[worker.worker_id] = {
+            id: worker.worker_id,
+            name: worker.worker_name,
+            phone: "-",
+            daysWorked: 0,
+            totalEarnings: 0,
+            paidAmount: 0,
+            pendingAmount: 0,
+          };
+        }
+
+        const item = historicalWorkers[worker.worker_id];
+        const amount = Number(worker.wage_amount || 0);
+
+        item.daysWorked += 1;
+        item.totalEarnings += amount;
+
+        if (worker.payment_status === "paid") {
+          item.paidAmount += amount;
+        } else {
+          item.pendingAmount += amount;
+        }
+      }
+    });
+  });
+
+  const allWorkerReports = [
+    ...workerReports,
+    ...Object.values(historicalWorkers),
+  ].sort((a, b) => b.totalEarnings - a.totalEarnings);
+
+  const totalWorkerEarnings = allWorkerReports.reduce(
+    (sum, worker) => sum + worker.totalEarnings,
+    0
+  );
+
+  const totalPaid = allWorkerReports.reduce(
+    (sum, worker) => sum + worker.paidAmount,
+    0
+  );
+
+  const totalPending = allWorkerReports.reduce(
+    (sum, worker) => sum + worker.pendingAmount,
+    0
+  );
+
+  const totalWorkDays = settlements.length;
+
+  if (loading) {
+    return (
+      <div className="page">
+        <div className="card">
+          <p>Loading reports...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page">
+      <div className="page-header">
+        <div>
+          <h1>Worker Reports</h1>
+          <p>Individual worker earnings across all recorded work days.</p>
+        </div>
+
+        <button className="secondary-button" onClick={loadReports}>
+          Refresh
+        </button>
+      </div>
+
+      {/* Summary */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <span>Total Work Days</span>
+          <strong>{totalWorkDays}</strong>
+        </div>
+
+        <div className="stat-card">
+          <span>Workers</span>
+          <strong>{allWorkerReports.length}</strong>
+        </div>
+
+        <div className="stat-card">
+          <span>Total Worker Earnings</span>
+          <strong>
+            ₹{totalWorkerEarnings.toLocaleString("en-IN", {
+              maximumFractionDigits: 2,
+            })}
+          </strong>
+        </div>
+
+        <div className="stat-card">
+          <span>Pending Wages</span>
+          <strong>
+            ₹{totalPending.toLocaleString("en-IN", {
+              maximumFractionDigits: 2,
+            })}
+          </strong>
+        </div>
+      </div>
+
+      {/* Worker-wise report */}
+      <div className="card">
+        <div className="card-header">
+          <div>
+            <h2>Individual Worker Earnings</h2>
+            <p>All-time earnings from every recorded settlement.</p>
+          </div>
+        </div>
+
+        {allWorkerReports.length === 0 ? (
+          <div className="empty-state">
+            <h3>No worker earnings yet</h3>
+            <p>Complete a daily settlement to see worker earnings here.</p>
+          </div>
+        ) : (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Worker Name</th>
+                  <th>Days Worked</th>
+                  <th>Total Earnings</th>
+                  <th>Paid</th>
+                  <th>Pending</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {allWorkerReports.map((worker, index) => (
+                  <tr key={worker.id || `${worker.name}-${index}`}>
+                    <td>{index + 1}</td>
+
+                    <td>
+                      <strong>{worker.name}</strong>
+                    </td>
+
+                    <td>
+                      <span className="badge">
+                        {worker.daysWorked} days
+                      </span>
+                    </td>
+
+                    <td>
+                      <strong>
+                        ₹
+                        {worker.totalEarnings.toLocaleString("en-IN", {
+                          maximumFractionDigits: 2,
+                        })}
+                      </strong>
+                    </td>
+
+                    <td>
+                      <span className="status-paid">
+                        ₹
+                        {worker.paidAmount.toLocaleString("en-IN", {
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </td>
+
+                    <td>
+                      <span className="status-pending">
+                        ₹
+                        {worker.pendingAmount.toLocaleString("en-IN", {
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+
+              <tfoot>
+                <tr>
+                  <th colSpan="3">TOTAL</th>
+
+                  <th>
+                    ₹
+                    {totalWorkerEarnings.toLocaleString("en-IN", {
+                      maximumFractionDigits: 2,
+                    })}
+                  </th>
+
+                  <th>
+                    ₹
+                    {totalPaid.toLocaleString("en-IN", {
+                      maximumFractionDigits: 2,
+                    })}
+                  </th>
+
+                  <th>
+                    ₹
+                    {totalPending.toLocaleString("en-IN", {
+                      maximumFractionDigits: 2,
+                    })}
+                  </th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
   const [month, setMonth] = useState(dateISO().slice(0, 7));
 
   const filtered = settlements.filter((s) => s.work_date.startsWith(month));
