@@ -19,7 +19,7 @@ const translations = {
     admin: "Admin",
 
     // Dashboard
-    goodMorning: "Good morning 👋",
+    goodMorning: "SHASI'S THRESHER",
     organizeRecords:
       "Keep your thresher income, diesel and worker wages organized.",
     totalIncome: "Total Income",
