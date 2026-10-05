@@ -278,7 +278,7 @@ function Dashboard({
     <div className="app-shell">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <div className="brand-mark small">TM</div>
+          <div className="brand-mark small">SAC</div>
           <div>
             <strong>Thresher</strong>
             <span>Manager</span>
