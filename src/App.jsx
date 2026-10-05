@@ -957,7 +957,7 @@ function WorkersPage({ workers, reload, showToast, language }) {
         </div>
         <form onSubmit={addWorker} className="form-grid">
           <label>
-            {t(language, "workerNameEnglish")}
+            {t(language, "workerName")}
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
