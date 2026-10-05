@@ -172,6 +172,32 @@ return (
   />
 );
 }
+function LanguageSelector({ language, onChange }) {
+  return (
+    <div className="language-selector">
+      <button
+        className={language === "en" ? "active" : ""}
+        onClick={() => onChange("en")}
+      >
+        English
+      </button>
+
+      <button
+        className={language === "te" ? "active" : ""}
+        onClick={() => onChange("te")}
+      >
+        తెలుగు
+      </button>
+
+      <button
+        className={language === "kn" ? "active" : ""}
+        onClick={() => onChange("kn")}
+      >
+        ಕನ್ನಡ
+      </button>
+    </div>
+  );
+}
 
 function Dashboard({
   session,
@@ -232,6 +258,11 @@ function Dashboard({
             <span>Manager</span>
           </div>
         </div>
+
+        <LanguageSelector
+          language={language}
+          onChange={onLanguageChange}
+        />
 
         <nav>
           <NavItem icon={<LayoutDashboard />} label="Dashboard" active={page === "dashboard"} onClick={() => setPage("dashboard")} />

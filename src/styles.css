@@ -202,3 +202,28 @@ textarea { resize: vertical; }
   .topbar h2 { font-size: 17px; }
   .modal-actions { flex-direction: column-reverse; }
 }
+.language-selector {
+  display: flex;
+  gap: 6px;
+  padding: 10px;
+  flex-wrap: wrap;
+}
+
+.language-selector button {
+  border: 1px solid #d8d8d8;
+  background: transparent;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.language-selector button:hover {
+  background: #f3f3f3;
+}
+
+.language-selector button.active {
+  background: #1f7a4d;
+  color: white;
+  border-color: #1f7a4d;
+}
