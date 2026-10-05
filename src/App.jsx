@@ -458,7 +458,7 @@ function DashboardHome({
     <>
       <div className="hero-row">
         <div>
-          <h1>{t(language, "goodMorning")}</h1>
+          <h1>{t(language, "SHASI'S THRESHER")}</h1>
           <p className="muted">{t(language, "organizeRecords")}</p>
         </div>
         <button className="primary" onClick={onNew}>
