@@ -43,17 +43,6 @@ const niceDate = (value) =>
       })
     : "-";
 
-function App() {
-  const [session, setSession] = useState(null);
-  const [loadingAuth, setLoadingAuth] = useState(true);
-
-  const [language, setLanguageState] = useState(getLanguage());
-
-  function changeLanguage(lang) {
-    setLanguage(lang);
-    setLanguageState(lang);
-  }
-
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -128,7 +117,67 @@ function FullScreenLoader() {
   );
 }
 
-function Dashboard({ session }) {
+function App() {
+  const [session, setSession] = useState(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
+  const [language, setLanguageState] = useState(getLanguage());
+
+  useEffect(() => {
+    let isMounted = true;
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (isMounted) setSession(data.session);
+        if (isMounted) setLoadingAuth(false);
+      })
+      .catch(() => {
+        if (isMounted) setLoadingAuth(false);
+      });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (isMounted) {
+        setSession(nextSession);
+        setLoadingAuth(false);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      authListener?.subscription?.unsubscribe?.();
+    };
+  }, []);
+
+  function changeLanguage(lang) {
+    setLanguage(lang);
+    setLanguageState(lang);
+  }
+
+  if (loadingAuth) return <FullScreenLoader />;
+
+if (!session) {
+  return (
+    <Login
+      language={language}
+      onLanguageChange={changeLanguage}
+    />
+  );
+}
+
+return (
+  <Dashboard
+    session={session}
+    language={language}
+    onLanguageChange={changeLanguage}
+  />
+);
+}
+
+function Dashboard({
+  session,
+  language,
+  onLanguageChange,
+}) {
   const [page, setPage] = useState("dashboard");
   const [workers, setWorkers] = useState([]);
   const [settlements, setSettlements] = useState([]);
