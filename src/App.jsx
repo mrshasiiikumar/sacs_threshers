@@ -33,16 +33,7 @@ const dateISO = (date = new Date()) => {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 10);
 };
-
 const niceDate = (value) =>
-  value
-    ? new Date(`${value}T00:00:00`).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
-    : "-";
-      const niceDate = (value) =>
   value
     ? new Date(`${value}T00:00:00`).toLocaleDateString("en-IN", {
         day: "2-digit",
