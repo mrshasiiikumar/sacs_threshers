@@ -266,12 +266,41 @@ function Dashboard({
         />
 
         <nav>
-          <NavItem icon={<LayoutDashboard />} label="Dashboard" active={page === "dashboard"} onClick={() => setPage("dashboard")} />
-          <NavItem icon={<WalletCards />} label="New Settlement" active={page === "settlement"} onClick={() => setPage("settlement")} />
-          <NavItem icon={<History />} label="History" active={page === "history"} onClick={() => setPage("history")} />
-          <NavItem icon={<Users />} label="Workers" active={page === "workers"} onClick={() => setPage("workers")} />
-          <NavItem icon={<BarChart3 />} label="Reports" active={page === "reports"} onClick={() => setPage("reports")} />
-        </nav>
+  <NavItem
+    icon={<LayoutDashboard />}
+    label={t(language, "dashboard")}
+    active={page === "dashboard"}
+    onClick={() => setPage("dashboard")}
+  />
+
+  <NavItem
+    icon={<WalletCards />}
+    label={t(language, "newSettlement")}
+    active={page === "settlement"}
+    onClick={() => setPage("settlement")}
+  />
+
+  <NavItem
+    icon={<History />}
+    label={t(language, "history")}
+    active={page === "history"}
+    onClick={() => setPage("history")}
+  />
+
+  <NavItem
+    icon={<Users />}
+    label={t(language, "workers")}
+    active={page === "workers"}
+    onClick={() => setPage("workers")}
+  />
+
+  <NavItem
+    icon={<BarChart3 />}
+    label={t(language, "reports")}
+    active={page === "reports"}
+    onClick={() => setPage("reports")}
+  />
+</nav>
 
         <div className="sidebar-bottom">
           <div className="signed-user">
