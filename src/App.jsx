@@ -91,7 +91,7 @@ function Login({ language, onLanguageChange }) {
     <div className="login-page">
       <div className="login-card">
         <div className="brand-mark">TM</div>
-        <h1>{t(language, "threshersManager")}</h1>
+        <h1>{t(language, "thresherManager")}</h1>
         <p className="muted">{t(language, "adminLogin")}</p>
         <LanguageSelector language={language} onChange={onLanguageChange} />
 
