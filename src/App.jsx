@@ -961,7 +961,7 @@ function WorkersPage({ workers, reload, showToast, language }) {
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder={t(language, "enterEnglishName")}
+              placeholder={t(language, "enter Name")}
               required
             />
           </label>
