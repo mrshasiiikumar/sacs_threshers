@@ -1,4 +1,4 @@
-import React from "react";
+
 import { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
@@ -1149,44 +1149,6 @@ function ReportsPage() {
         )}
       </div>
     </div>
-  );
-}
-  const [month, setMonth] = useState(dateISO().slice(0, 7));
-
-  const filtered = settlements.filter((s) => s.work_date.startsWith(month));
-
-  const totals = filtered.reduce(
-    (a, s) => ({
-      income: a.income + Number(s.total_income),
-      diesel: a.diesel + Number(s.diesel_expense),
-      owner: a.owner + Number(s.owner_share),
-      workers: a.workers + Number(s.workers_share),
-    }),
-    { income: 0, diesel: 0, owner: 0, workers: 0 }
-  );
-
-  return (
-    <section className="card">
-      <div className="section-head">
-        <div>
-          <h3>Monthly report</h3>
-          <p className="muted">Review income, diesel and profit for a selected month.</p>
-        </div>
-        <input className="month-input" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
-      </div>
-
-      <div className="report-cards">
-        <StatCard icon={<CircleDollarSign />} label="Income" value={money(totals.income)} />
-        <StatCard icon={<Droplets />} label="Diesel" value={money(totals.diesel)} />
-        <StatCard icon={<WalletCards />} label="Owner profit" value={money(totals.owner)} />
-        <StatCard icon={<Users />} label="Worker share" value={money(totals.workers)} />
-      </div>
-
-      <div className="report-summary">
-        <span>Work days</span>
-        <strong>{filtered.length}</strong>
-      </div>
-    </section>
   );
 }
 
