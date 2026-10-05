@@ -149,9 +149,10 @@ function App() {
   }, []);
 
   function changeLanguage(lang) {
-    setLanguage(lang);
-    setLanguageState(lang);
-  }
+  console.log("Language changed to:", lang);
+  setLanguage(lang);
+  setLanguageState(lang);
+}
 
   if (loadingAuth) return <FullScreenLoader />;
 
