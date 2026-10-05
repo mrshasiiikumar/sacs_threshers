@@ -22,8 +22,9 @@ import {
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 
-const money = (value) =>
-  new Intl.NumberFormat("en-IN", {
+const locales = { en: "en-IN", te: "te-IN", kn: "kn-IN" };
+const money = (value, language = "en") =>
+  new Intl.NumberFormat(locales[language] || locales.en, {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 2,
@@ -33,9 +34,9 @@ const dateISO = (date = new Date()) => {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 10);
 };
-const niceDate = (value) =>
+const niceDate = (value, language = "en") =>
   value
-    ? new Date(`${value}T00:00:00`).toLocaleDateString("en-IN", {
+    ? new Date(`${value}T00:00:00`).toLocaleDateString(locales[language] || locales.en, {
         day: "2-digit",
         month: "short",
         year: "numeric",
@@ -54,7 +55,19 @@ function getWorkerName(worker, language) {
   return worker.name;
 }
 
-function Login() {
+function getSettlementWorkerName(worker, language) {
+  if (language === "te") {
+    return worker.worker_name_te || worker.worker_name;
+  }
+
+  if (language === "kn") {
+    return worker.worker_name_kn || worker.worker_name;
+  }
+
+  return worker.worker_name;
+}
+
+function Login({ language, onLanguageChange }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -78,52 +91,53 @@ function Login() {
     <div className="login-page">
       <div className="login-card">
         <div className="brand-mark">TM</div>
-        <h1>Thresher Manager</h1>
-        <p className="muted">Admin login</p>
+        <h1>{t(language, "thresherManager")}</h1>
+        <p className="muted">{t(language, "adminLogin")}</p>
+        <LanguageSelector language={language} onChange={onLanguageChange} />
 
         <form onSubmit={submit} className="stack">
           <label>
-            Email
+            {t(language, "email")}
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@example.com"
+              placeholder={t(language, "email")}
             />
           </label>
 
           <label>
-            Password
+            {t(language, "password")}
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Your password"
+              placeholder={t(language, "password")}
             />
           </label>
 
           {error && <div className="alert error">{error}</div>}
 
           <button className="primary full" disabled={busy}>
-            {busy ? "Signing in..." : "Sign in"}
+            {busy ? t(language, "signingIn") : t(language, "signIn")}
           </button>
         </form>
 
         <p className="login-note">
-          Create the admin user from Supabase Dashboard → Authentication → Users.
+          {t(language, "createAdmin")}
         </p>
       </div>
     </div>
   );
 }
 
-function FullScreenLoader() {
+function FullScreenLoader({ language }) {
   return (
     <div className="center-screen">
       <RefreshCw className="spin" size={28} />
-      <span>Loading...</span>
+      <span>{t(language, "loading")}</span>
     </div>
   );
 }
@@ -160,12 +174,11 @@ function App() {
   }, []);
 
   function changeLanguage(lang) {
-  console.log("Language changed to:", lang);
-  setLanguage(lang);
-  setLanguageState(lang);
-}
+    setLanguage(lang);
+    setLanguageState(lang);
+  }
 
-  if (loadingAuth) return <FullScreenLoader />;
+  if (loadingAuth) return <FullScreenLoader language={language} />;
 
 if (!session) {
   return (
@@ -232,7 +245,7 @@ function Dashboard({
         supabase
           .from("settlements")
           .select(
-            "id, work_date, total_income, diesel_expense, net_amount, owner_share, workers_share, worker_count, notes, created_at, settlement_workers(id, worker_id, worker_name, wage_amount, payment_status, paid_at)"
+            "id, work_date, total_income, diesel_expense, net_amount, owner_share, workers_share, worker_count, notes, created_at, settlement_workers(id, worker_id, worker_name, worker_name_te, worker_name_kn, wage_amount, payment_status, paid_at)"
           )
           .order("work_date", { ascending: false }),
       ]);
@@ -251,7 +264,7 @@ function Dashboard({
 
 
   function showToast(message, isError = false) {
-    setToast(`${isError ? "Error: " : ""}${message}`);
+    setToast(`${isError ? `${t(language, "error")}: ` : ""}${message}`);
     window.setTimeout(() => setToast(""), 3500);
   }
 
@@ -332,15 +345,15 @@ function Dashboard({
         <header className="topbar">
           <div>
             <h2>
-              {page === "dashboard" && "Dashboard"}
-              {page === "settlement" && "Daily Settlement"}
-              {page === "history" && "Settlement History"}
-              {page === "workers" && "Worker Management"}
-              {page === "reports" && "Reports"}
+              {page === "dashboard" && t(language, "dashboard")}
+              {page === "settlement" && t(language, "dailySettlement")}
+              {page === "history" && t(language, "settlementHistoryTitle")}
+              {page === "workers" && t(language, "workers")}
+              {page === "reports" && t(language, "reports")}
             </h2>
-            <span className="muted">Crop thresher financial records</span>
+            <span className="muted">{t(language, "cropRecords")}</span>
           </div>
-          <button className="icon-btn" onClick={loadData} title="Refresh">
+          <button className="icon-btn" onClick={loadData} title={t(language, "refresh")}>
             <RefreshCw size={18} className={loading ? "spin" : ""} />
           </button>
         </header>
@@ -387,10 +400,7 @@ function Dashboard({
           )}
 
          {page === "reports" && (
-  <ReportsPage
-    settlements={settlements}
-    language={language}
-  />
+  <ReportsPage settlements={settlements} language={language} />
 )}
         </div>
       </main>
@@ -403,6 +413,7 @@ function Dashboard({
           onClose={() => setSelectedSettlement(null)}
           reload={loadData}
           showToast={showToast}
+          language={language}
         />
       )}
     </div>
@@ -447,53 +458,53 @@ function DashboardHome({
     <>
       <div className="hero-row">
         <div>
-          <h1>Good morning 👋</h1>
-          <p className="muted">Keep your thresher income, diesel and worker wages organized.</p>
+          <h1>{t(language, "goodMorning")}</h1>
+          <p className="muted">{t(language, "organizeRecords")}</p>
         </div>
         <button className="primary" onClick={onNew}>
-          <Plus size={18} /> New settlement
+          <Plus size={18} /> {t(language, "newSettlement")}
         </button>
       </div>
 
       <div className="stat-grid">
-        <StatCard icon={<CircleDollarSign />} label="Total income" value={money(totals.income)} />
-        <StatCard icon={<Droplets />} label="Diesel expense" value={money(totals.diesel)} />
-        <StatCard icon={<WalletCards />} label="Owner profit" value={money(totals.owner)} />
-        <StatCard icon={<Users />} label="Workers paid share" value={money(totals.workers)} />
+        <StatCard icon={<CircleDollarSign />} label={t(language, "totalIncome")} value={money(totals.income, language)} />
+        <StatCard icon={<Droplets />} label={t(language, "dieselExpense")} value={money(totals.diesel, language)} />
+        <StatCard icon={<WalletCards />} label={t(language, "ownerProfit")} value={money(totals.owner, language)} />
+        <StatCard icon={<Users />} label={t(language, "workersPaidShare")} value={money(totals.workers, language)} />
       </div>
 
       <div className="section-grid">
         <section className="card">
           <div className="section-head">
             <div>
-              <h3>Recent settlements</h3>
-              <p className="muted">Latest saved work records</p>
+              <h3>{t(language, "recentSettlements")}</h3>
+              <p className="muted">{t(language, "latestRecords")}</p>
             </div>
-            <button className="link-btn" onClick={onHistory}>View all</button>
+            <button className="link-btn" onClick={onHistory}>{t(language, "viewAll")}</button>
           </div>
 
           {recent.length === 0 ? (
-            <EmptyState text="No settlements yet. Create your first daily settlement." />
+            <EmptyState text={t(language, "noSettlements")} />
           ) : (
             <div className="table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Date</th>
-                    <th>Income</th>
-                    <th>Diesel</th>
-                    <th>Owner</th>
-                    <th>Workers</th>
+                    <th>{t(language, "date")}</th>
+                    <th>{t(language, "income")}</th>
+                    <th>{t(language, "diesel")}</th>
+                    <th>{t(language, "owner")}</th>
+                    <th>{t(language, "workerCount")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {recent.map((row) => (
                     <tr key={row.id}>
-                      <td>{niceDate(row.work_date)}</td>
-                      <td>{money(row.total_income)}</td>
-                      <td>{money(row.diesel_expense)}</td>
-                      <td>{money(row.owner_share)}</td>
-                      <td>{row.worker_count} workers</td>
+                      <td>{niceDate(row.work_date, language)}</td>
+                      <td>{money(row.total_income, language)}</td>
+                      <td>{money(row.diesel_expense, language)}</td>
+                      <td>{money(row.owner_share, language)}</td>
+                      <td>{row.worker_count} {t(language, "workersLabel")}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -505,8 +516,8 @@ function DashboardHome({
         <section className="card">
           <div className="section-head">
             <div>
-              <h3>Active workers</h3>
-              <p className="muted">Available for today's selection</p>
+              <h3>{t(language, "activeWorkers")}</h3>
+              <p className="muted">{t(language, "availableToday")}</p>
             </div>
           </div>
           <div className="worker-mini-list">
@@ -518,7 +529,7 @@ function DashboardHome({
 <span>{getWorkerName(worker, language)}</span>
               </div>
             ))}
-            {workers.length > 10 && <span className="muted">+{workers.length - 10} more</span>}
+            {workers.length > 10 && <span className="muted">+{workers.length - 10} {t(language, "more")}</span>}
           </div>
         </section>
       </div>
@@ -575,12 +586,12 @@ function SettlementPage({
   }
 
   async function save() {
-    if (!workDate) return showToast("Select the work date.", true);
-    if (calc.totalIncome <= 0) return showToast("Enter the total income.", true);
+    if (!workDate) return showToast(t(language, "selectDate"), true);
+    if (calc.totalIncome <= 0) return showToast(t(language, "enterTotalIncome"), true);
     if (calc.dieselExpense > calc.totalIncome)
-      return showToast("Diesel expense cannot be greater than income.", true);
+      return showToast(t(language, "dieselGreater"), true);
     if (!selectedIds.length)
-      return showToast("Select at least one worker.", true);
+      return showToast(t(language, "selectAtLeastOne"), true);
 
     setSaving(true);
 
@@ -606,19 +617,19 @@ function SettlementPage({
       <section className="card">
         <div className="section-head">
           <div>
-            <h3>Daily work details</h3>
-            <p className="muted">Enter today's thresher income and expenses.</p>
+            <h3>{t(language, "dailyWorkDetails")}</h3>
+            <p className="muted">{t(language, "enterIncome")}</p>
           </div>
         </div>
 
         <div className="form-grid">
           <label>
-            Work date
+            {t(language, "workDate")}
             <input type="date" value={workDate} onChange={(e) => setWorkDate(e.target.value)} />
           </label>
 
           <label>
-            Total income (₹)
+            {t(language, "totalIncomeRupees")}
             <input
               type="number"
               min="0"
@@ -630,7 +641,7 @@ function SettlementPage({
           </label>
 
           <label>
-            Diesel expense (₹)
+            {t(language, "dieselExpenseRupees")}
             <input
               type="number"
               min="0"
@@ -642,24 +653,24 @@ function SettlementPage({
           </label>
 
           <label className="full-span">
-            Notes
+            {t(language, "notes")}
             <textarea
               rows="3"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Optional: crop, village, customer, tractor details..."
+              placeholder={t(language, "optionalNotes")}
             />
           </label>
         </div>
 
         <div className="worker-select-head">
           <div>
-            <h3>Select workers</h3>
-            <p className="muted">{selectedIds.length} of {workers.length} selected</p>
+            <h3>{t(language, "selectWorkers")}</h3>
+            <p className="muted">{selectedIds.length}/{workers.length} {t(language, "selected")}</p>
           </div>
           <div className="button-row">
-            <button className="secondary small-btn" onClick={selectAll}>Select all</button>
-            <button className="secondary small-btn" onClick={clearAll}>Clear</button>
+            <button className="secondary small-btn" onClick={selectAll}>{t(language, "selectAll")}</button>
+            <button className="secondary small-btn" onClick={clearAll}>{t(language, "clear")}</button>
           </div>
         </div>
 
@@ -684,32 +695,29 @@ function SettlementPage({
       <section className="card calculation-card">
         <div className="section-head">
           <div>
-            <h3>Settlement preview</h3>
-            <p className="muted">Calculated automatically before saving.</p>
+            <h3>{t(language, "settlementPreview")}</h3>
+            <p className="muted">{t(language, "calculatedAutomatically")}</p>
           </div>
           <CheckCircle2 className="success-icon" />
         </div>
 
         <div className="calculation">
-          <CalcRow label="Total income" value={money(calc.totalIncome)} />
-          <CalcRow label="Less: diesel" value={`− ${money(calc.dieselExpense)}`} />
+          <CalcRow label={t(language, "totalIncome")} value={money(calc.totalIncome, language)} />
+          <CalcRow label={`− ${t(language, "diesel")}`} value={money(calc.dieselExpense, language)} />
           <div className="calc-divider" />
-          <CalcRow label="Net amount" value={money(calc.net)} strong />
-          <CalcRow label="Owner share (50%)" value={money(calc.owner)} />
-          <CalcRow label="Workers share (50%)" value={money(calc.workersShare)} />
-          <CalcRow label={`Each worker (${selectedIds.length})`} value={money(calc.perWorker)} strong />
+          <CalcRow label={t(language, "netAmount")} value={money(calc.net, language)} strong />
+          <CalcRow label={t(language, "ownerShare")} value={money(calc.owner, language)} />
+          <CalcRow label={t(language, "workersShare")} value={money(calc.workersShare, language)} />
+          <CalcRow label={`${t(language, "eachWorker")} (${selectedIds.length})`} value={money(calc.perWorker, language)} strong />
         </div>
 
         <div className="formula-box">
-          <strong>Your rule</strong>
-          <p>
-            Income − diesel = net. Net is split equally between owner and workers.
-            The workers' half is divided equally among today's selected workers.
-          </p>
+          <strong>{t(language, "yourRule")}</strong>
+          <p>{t(language, "ruleDescription")}</p>
         </div>
 
         <button className="primary full" onClick={save} disabled={saving}>
-          {saving ? "Saving..." : "Save daily settlement"}
+          {saving ? t(language, "saving") : t(language, "saveSettlement")}
         </button>
       </section>
     </div>
@@ -725,45 +733,45 @@ function CalcRow({ label, value, strong }) {
   );
 }
 
-function HistoryPage({ settlements, onOpen }) {
+function HistoryPage({ settlements, onOpen, language }) {
   return (
     <section className="card">
       <div className="section-head">
         <div>
-          <h3>Settlement history</h3>
-          <p className="muted">{settlements.length} saved work days</p>
+          <h3>{t(language, "settlementHistory")}</h3>
+          <p className="muted">{settlements.length} {t(language, "savedWorkDays")}</p>
         </div>
       </div>
 
       {settlements.length === 0 ? (
-        <EmptyState text="No settlement records yet." />
+        <EmptyState text={t(language, "noSettlementRecords")} />
       ) : (
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Income</th>
-                <th>Diesel</th>
-                <th>Net</th>
-                <th>Owner</th>
-                <th>Workers</th>
-                <th>Workers' share</th>
+                <th>{t(language, "date")}</th>
+                <th>{t(language, "income")}</th>
+                <th>{t(language, "diesel")}</th>
+                <th>{t(language, "net")}</th>
+                <th>{t(language, "owner")}</th>
+                <th>{t(language, "workerCount")}</th>
+                <th>{t(language, "workerShare")}</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {settlements.map((row) => (
                 <tr key={row.id}>
-                  <td>{niceDate(row.work_date)}</td>
-                  <td>{money(row.total_income)}</td>
-                  <td>{money(row.diesel_expense)}</td>
-                  <td>{money(row.net_amount)}</td>
-                  <td>{money(row.owner_share)}</td>
+                  <td>{niceDate(row.work_date, language)}</td>
+                  <td>{money(row.total_income, language)}</td>
+                  <td>{money(row.diesel_expense, language)}</td>
+                  <td>{money(row.net_amount, language)}</td>
+                  <td>{money(row.owner_share, language)}</td>
                   <td>{row.worker_count}</td>
-                  <td>{money(row.workers_share)}</td>
+                  <td>{money(row.workers_share, language)}</td>
                   <td>
-                    <button className="link-btn" onClick={() => onOpen(row)}>Details</button>
+                    <button className="link-btn" onClick={() => onOpen(row)}>{t(language, "details")}</button>
                   </td>
                 </tr>
               ))}
@@ -775,7 +783,7 @@ function HistoryPage({ settlements, onOpen }) {
   );
 }
 
-function SettlementModal({ settlement, onClose, reload, showToast }) {
+function SettlementModal({ settlement, onClose, reload, showToast, language }) {
   const [busy, setBusy] = useState(false);
 
   async function togglePayment(item) {
@@ -797,14 +805,14 @@ function SettlementModal({ settlement, onClose, reload, showToast }) {
   }
 
   async function deleteSettlement() {
-    if (!window.confirm("Delete this settlement and all its worker wage records?")) return;
+    if (!window.confirm(t(language, "deleteSettlementConfirm"))) return;
 
     setBusy(true);
     const { error } = await supabase.from("settlements").delete().eq("id", settlement.id);
 
     if (error) showToast(error.message, true);
     else {
-      showToast("Settlement deleted.");
+      showToast(t(language, "settlementDeleted"));
       onClose();
       await reload();
     }
@@ -819,41 +827,41 @@ function SettlementModal({ settlement, onClose, reload, showToast }) {
       <div className="modal">
         <div className="modal-head">
           <div>
-            <h3>Settlement details</h3>
-            <p className="muted">{niceDate(settlement.work_date)}</p>
+            <h3>{t(language, "settlementDetails")}</h3>
+            <p className="muted">{niceDate(settlement.work_date, language)}</p>
           </div>
           <button className="icon-btn" onClick={onClose}><X size={18} /></button>
         </div>
 
         <div className="detail-grid">
-          <Detail label="Income" value={money(settlement.total_income)} />
-          <Detail label="Diesel" value={money(settlement.diesel_expense)} />
-          <Detail label="Net" value={money(settlement.net_amount)} />
-          <Detail label="Owner" value={money(settlement.owner_share)} />
-          <Detail label="Workers share" value={money(settlement.workers_share)} />
-          <Detail label="Workers" value={settlement.worker_count} />
+          <Detail label={t(language, "income")} value={money(settlement.total_income, language)} />
+          <Detail label={t(language, "diesel")} value={money(settlement.diesel_expense, language)} />
+          <Detail label={t(language, "net")} value={money(settlement.net_amount, language)} />
+          <Detail label={t(language, "owner")} value={money(settlement.owner_share, language)} />
+          <Detail label={t(language, "workersShare")} value={money(settlement.workers_share, language)} />
+          <Detail label={t(language, "workerCount")} value={settlement.worker_count} />
         </div>
 
         {settlement.notes && <div className="notes">{settlement.notes}</div>}
 
         <div className="section-head compact">
           <div>
-            <h4>Worker wages</h4>
-            <p className="muted">{paidCount}/{workersPaid.length} marked paid</p>
+            <h4>{t(language, "workerWages")}</h4>
+            <p className="muted">{paidCount}/{workersPaid.length} {t(language, "markedPaid")}</p>
           </div>
         </div>
 
         <div className="wage-list">
           {workersPaid.map((worker) => (
             <div className="wage-row" key={worker.id}>
-              <span>{worker.worker_name}</span>
-              <strong>{money(worker.wage_amount)}</strong>
+              <span>{getSettlementWorkerName(worker, language)}</span>
+              <strong>{money(worker.wage_amount, language)}</strong>
               <button
                 className={`status-btn ${worker.payment_status === "paid" ? "paid" : ""}`}
                 onClick={() => togglePayment(worker)}
                 disabled={busy}
               >
-                {worker.payment_status === "paid" ? "Paid" : "Mark paid"}
+                {worker.payment_status === "paid" ? t(language, "paid") : t(language, "markPaid")}
               </button>
             </div>
           ))}
@@ -861,9 +869,9 @@ function SettlementModal({ settlement, onClose, reload, showToast }) {
 
         <div className="modal-actions">
           <button className="danger-btn" onClick={deleteSettlement} disabled={busy}>
-            <Trash2 size={16} /> Delete settlement
+            <Trash2 size={16} /> {t(language, "deleteSettlement")}
           </button>
-          <button className="secondary" onClick={onClose}>Close</button>
+          <button className="secondary" onClick={onClose}>{t(language, "close")}</button>
         </div>
       </div>
     </div>
@@ -879,9 +887,161 @@ function Detail({ label, value }) {
   );
 }
 
-function WorkersPage({ workers, reload, showToast, language, }) { const [name, setName] = useState(""); const [phone, setPhone] = useState(""); const [busy, setBusy] = useState(false); async function addWorker(e) { e.preventDefault(); if (!name.trim()) return; setBusy(true); const { error } = await supabase.from("workers").insert({ name: name.trim(), phone: phone.trim() || null, }); if (error) { showToast(error.message, true); } else { setName(""); setPhone(""); showToast(t(language, "workerAdded")); await reload(); } setBusy(false); } async function toggleActive(worker) { const { error } = await supabase .from("workers") .update({ active: !worker.active }) .eq("id", worker.id); if (error) { showToast(error.message, true); } else { await reload(); } } async function deleteWorker(worker) { const workerName = getWorkerName(worker, language); if (!window.confirm(`${t(language, "delete")} ${workerName}?`)) { return; } const { error } = await supabase .from("workers") .delete() .eq("id", worker.id); if (error) { showToast(error.message, true); } else { showToast(t(language, "workerDeleted")); await reload(); } } return ( <div className="two-column"> {/* ADD WORKER */} <section className="card"> <div className="section-head"> <div> <h3>{t(language, "addWorker")}</h3> <p className="muted"> {t(language, "addWorkerDescription")} </p> </div> </div> <form onSubmit={addWorker} className="form-grid"> <label> {t(language, "workerName")} <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Ramesh" required /> </label> <label> {t(language, "phoneOptional")} <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="9876543210" /> </label> <button className="primary full-span" disabled={busy} > <Plus size={17} /> {busy ? t(language, "adding") : t(language, "addWorkerButton")} </button> </form> </section> {/* WORKER LIST */} <section className="card"> <div className="section-head"> <div> <h3>{t(language, "workerList")}</h3> <p className="muted"> {workers.length} {t(language, "workersMasterList")} </p> </div> </div> <div className="worker-management"> {workers.map((worker) => { const workerName = getWorkerName(worker, language); return ( <div className={`worker-row ${ worker.active ? "" : "inactive" }`} key={worker.id} > <div className="worker-info"> <span className="avatar small"> {workerName[0]?.toUpperCase()} </span> <div> <strong>{workerName}</strong> <span> {worker.phone || t(language, "noPhone")} </span> </div> </div> <div className="button-row"> <button className="secondary small-btn" onClick={() => toggleActive(worker)} > {worker.active ? t(language, "active") : t(language, "inactive")} </button> <button className="icon-danger" onClick={() => deleteWorker(worker)} title={t(language, "delete")} > <Trash2 size={16} /> </button> </div> </div> ); })} </div> </section> </div> ); }
+function WorkersPage({ workers, reload, showToast, language }) {
+  const [name, setName] = useState("");
+  const [nameTe, setNameTe] = useState("");
+  const [nameKn, setNameKn] = useState("");
+  const [phone, setPhone] = useState("");
+  const [busy, setBusy] = useState(false);
 
-function ReportsPage({ settlements }) {
+  async function addWorker(event) {
+    event.preventDefault();
+    if (!name.trim()) return;
+    setBusy(true);
+
+    const { error } = await supabase.from("workers").insert({
+      name: name.trim(),
+      name_te: nameTe.trim() || null,
+      name_kn: nameKn.trim() || null,
+      phone: phone.trim() || null,
+    });
+
+    if (error) {
+      showToast(error.message, true);
+    } else {
+      setName("");
+      setNameTe("");
+      setNameKn("");
+      setPhone("");
+      showToast(t(language, "workerAdded"));
+      await reload();
+    }
+    setBusy(false);
+  }
+
+  async function toggleActive(worker) {
+    const { error } = await supabase
+      .from("workers")
+      .update({ active: !worker.active })
+      .eq("id", worker.id);
+
+    if (error) showToast(error.message, true);
+    else await reload();
+  }
+
+  async function deleteWorker(worker) {
+    const workerName = getWorkerName(worker, language);
+    if (!window.confirm(`${t(language, "delete")} ${workerName}?`)) return;
+
+    const { error } = await supabase
+      .from("workers")
+      .delete()
+      .eq("id", worker.id);
+
+    if (error) {
+      showToast(error.message, true);
+    } else {
+      showToast(t(language, "workerDeleted"));
+      await reload();
+    }
+  }
+
+  return (
+    <div className="two-column">
+      <section className="card">
+        <div className="section-head">
+          <div>
+            <h3>{t(language, "addWorker")}</h3>
+            <p className="muted">{t(language, "addWorkerDescription")}</p>
+          </div>
+        </div>
+        <form onSubmit={addWorker} className="form-grid">
+          <label>
+            {t(language, "workerNameEnglish")}
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder={t(language, "enterEnglishName")}
+              required
+            />
+          </label>
+          <label>
+            {t(language, "workerNameTelugu")}
+            <input
+              value={nameTe}
+              onChange={(event) => setNameTe(event.target.value)}
+              placeholder={t(language, "enterTeluguName")}
+            />
+          </label>
+          <label>
+            {t(language, "workerNameKannada")}
+            <input
+              value={nameKn}
+              onChange={(event) => setNameKn(event.target.value)}
+              placeholder={t(language, "enterKannadaName")}
+            />
+          </label>
+          <label>
+            {t(language, "phoneOptional")}
+            <input
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+              placeholder="9876543210"
+            />
+          </label>
+          <button className="primary full-span" disabled={busy}>
+            <Plus size={17} /> {busy ? t(language, "adding") : t(language, "addWorkerButton")}
+          </button>
+        </form>
+      </section>
+
+      <section className="card">
+        <div className="section-head">
+          <div>
+            <h3>{t(language, "workerList")}</h3>
+            <p className="muted">{workers.length} {t(language, "workersMasterList")}</p>
+          </div>
+        </div>
+        <div className="worker-management">
+          {workers.map((worker) => {
+            const workerName = getWorkerName(worker, language);
+            return (
+              <div
+                className={`worker-row ${worker.active ? "" : "inactive"}`}
+                key={worker.id}
+              >
+                <div className="worker-info">
+                  <span className="avatar small">{workerName[0]?.toUpperCase()}</span>
+                  <div>
+                    <strong>{workerName}</strong>
+                    <span>{worker.phone || t(language, "noPhone")}</span>
+                  </div>
+                </div>
+                <div className="button-row">
+                  <button
+                    className="secondary small-btn"
+                    onClick={() => toggleActive(worker)}
+                  >
+                    {worker.active ? t(language, "active") : t(language, "inactive")}
+                  </button>
+                  <button
+                    className="icon-danger"
+                    onClick={() => deleteWorker(worker)}
+                    title={t(language, "delete")}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ReportsPage({ settlements, language }) {
   const workerMap = {};
 
   // Get worker earnings from all saved settlement records
@@ -894,7 +1054,7 @@ function ReportsPage({ settlements }) {
       if (!workerMap[id]) {
         workerMap[id] = {
           id,
-          name: worker.worker_name || "Unknown Worker",
+          name: getSettlementWorkerName(worker, language) || t(language, "unknownWorker"),
           daysWorked: 0,
           totalEarnings: 0,
           paidAmount: 0,
@@ -940,26 +1100,26 @@ function ReportsPage({ settlements }) {
       <div className="stat-grid">
         <StatCard
           icon={<Users />}
-          label="Total Workers"
+          label={t(language, "totalWorkers")}
           value={workerReports.length}
         />
 
         <StatCard
           icon={<CalendarDays />}
-          label="Total Work Days"
+          label={t(language, "totalWorkDays")}
           value={settlements.length}
         />
 
         <StatCard
           icon={<CircleDollarSign />}
-          label="Total Worker Earnings"
-          value={money(totalEarnings)}
+          label={t(language, "totalWorkerEarnings")}
+          value={money(totalEarnings, language)}
         />
 
         <StatCard
           icon={<WalletCards />}
-          label="Pending Wages"
-          value={money(totalPending)}
+          label={t(language, "pendingWages")}
+          value={money(totalPending, language)}
         />
       </div>
 
@@ -967,26 +1127,24 @@ function ReportsPage({ settlements }) {
       <section className="card">
         <div className="section-head">
           <div>
-            <h3>Individual Worker Earnings</h3>
-            <p className="muted">
-              Total earnings from all recorded work days
-            </p>
+            <h3>{t(language, "individualWorkerEarnings")}</h3>
+            <p className="muted">{t(language, "allTimeEarnings")}</p>
           </div>
         </div>
 
         {workerReports.length === 0 ? (
-          <EmptyState text="No worker earnings available yet." />
+          <EmptyState text={t(language, "noWorkerEarnings")} />
         ) : (
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Worker Name</th>
-                  <th>Days Worked</th>
-                  <th>Total Earnings</th>
-                  <th>Paid</th>
-                  <th>Pending</th>
+                  <th>{t(language, "workerNameReport")}</th>
+                  <th>{t(language, "daysWorked")}</th>
+                  <th>{t(language, "totalEarnings")}</th>
+                  <th>{t(language, "paid")}</th>
+                  <th>{t(language, "pending")}</th>
                 </tr>
               </thead>
 
@@ -1000,20 +1158,19 @@ function ReportsPage({ settlements }) {
                     </td>
 
                     <td>
-                      {worker.daysWorked} day
-                      {worker.daysWorked !== 1 ? "s" : ""}
+                      {worker.daysWorked} {t(language, worker.daysWorked === 1 ? "day" : "days")}
                     </td>
 
                     <td>
-                      <strong>{money(worker.totalEarnings)}</strong>
+                      <strong>{money(worker.totalEarnings, language)}</strong>
                     </td>
 
                     <td>
-                      {money(worker.paidAmount)}
+                      {money(worker.paidAmount, language)}
                     </td>
 
                     <td>
-                      {money(worker.pendingAmount)}
+                      {money(worker.pendingAmount, language)}
                     </td>
                   </tr>
                 ))}
@@ -1021,13 +1178,13 @@ function ReportsPage({ settlements }) {
 
               <tfoot>
                 <tr>
-                  <th colSpan="3">TOTAL</th>
+                  <th colSpan="3">{t(language, "total")}</th>
 
-                  <th>{money(totalEarnings)}</th>
+                  <th>{money(totalEarnings, language)}</th>
 
-                  <th>{money(totalPaid)}</th>
+                  <th>{money(totalPaid, language)}</th>
 
-                  <th>{money(totalPending)}</th>
+                  <th>{money(totalPending, language)}</th>
                 </tr>
               </tfoot>
             </table>

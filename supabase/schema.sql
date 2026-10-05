@@ -20,10 +20,16 @@ create table if not exists public.profiles (
 create table if not exists public.workers (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  name_te text,
+  name_kn text,
   phone text,
   active boolean not null default true,
   created_at timestamptz not null default now()
 );
+
+alter table public.workers
+  add column if not exists name_te text,
+  add column if not exists name_kn text;
 
 create index if not exists workers_name_idx on public.workers(name);
 create index if not exists workers_active_idx on public.workers(active);
@@ -64,6 +70,8 @@ create table if not exists public.settlement_workers (
   settlement_id uuid not null references public.settlements(id) on delete cascade,
   worker_id uuid references public.workers(id) on delete set null,
   worker_name text not null,
+  worker_name_te text,
+  worker_name_kn text,
   wage_amount numeric(12,2) not null check (wage_amount >= 0),
   payment_status text not null default 'pending'
     check (payment_status in ('pending', 'paid')),
@@ -71,6 +79,10 @@ create table if not exists public.settlement_workers (
   created_at timestamptz not null default now(),
   unique (settlement_id, worker_id)
 );
+
+alter table public.settlement_workers
+  add column if not exists worker_name_te text,
+  add column if not exists worker_name_kn text;
 
 create index if not exists settlement_workers_settlement_idx
   on public.settlement_workers(settlement_id);
@@ -189,7 +201,7 @@ begin
   returning id into v_settlement_id;
 
   for v_worker in
-    select id, name
+    select id, name, name_te, name_kn
     from public.workers
     where id = any(p_worker_ids)
       and active = true
@@ -199,12 +211,16 @@ begin
       settlement_id,
       worker_id,
       worker_name,
+      worker_name_te,
+      worker_name_kn,
       wage_amount
     )
     values (
       v_settlement_id,
       v_worker.id,
       v_worker.name,
+      v_worker.name_te,
+      v_worker.name_kn,
       v_per_worker
     );
   end loop;

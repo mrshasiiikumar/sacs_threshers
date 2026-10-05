@@ -35,6 +35,7 @@ const translations = {
     availableToday: "Available for today's selection",
     more: "more",
     workersLabel: "workers",
+    unknownWorker: "Unknown Worker",
 
     // Daily settlement
     dailySettlement: "Daily Settlement",
@@ -186,6 +187,7 @@ const translations = {
     availableToday: "ఈరోజు ఎంపిక కోసం అందుబాటులో ఉన్నవారు",
     more: "మరిన్ని",
     workersLabel: "కార్మికులు",
+    unknownWorker: "తెలియని కార్మికుడు",
 
     // Daily settlement
     dailySettlement: "రోజువారీ సెటిల్‌మెంట్",
@@ -337,6 +339,7 @@ const translations = {
     availableToday: "ಇಂದಿನ ಆಯ್ಕೆಗಾಗಿ ಲಭ್ಯವಿರುವವರು",
     more: "ಹೆಚ್ಚು",
     workersLabel: "ಕಾರ್ಮಿಕರು",
+    unknownWorker: "ಅಪರಿಚಿತ ಕಾರ್ಮಿಕ",
 
     // Daily settlement
     dailySettlement: "ದೈನಂದಿನ ಸೆಟಲ್‌ಮೆಂಟ್",

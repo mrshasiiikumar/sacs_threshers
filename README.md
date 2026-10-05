@@ -49,12 +49,17 @@ supabase/schema.sql
 
 The SQL creates:
 - profiles
-- workers
+- workers (English, Telugu, and Kannada names)
 - settlements
 - settlement_workers
 - dashboard view
 - secure RLS policies
 - settlement creation function
+
+If the database was initialized before multilingual worker names were added,
+run `supabase/schema.sql` again to add the optional Telugu and Kannada name
+columns to the workers table and preserve translated worker names in new
+settlement records.
 
 ## 2. Create admin account
 
