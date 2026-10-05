@@ -42,7 +42,28 @@ const niceDate = (value) =>
         year: "numeric",
       })
     : "-";
+      const niceDate = (value) =>
+  value
+    ? new Date(`${value}T00:00:00`).toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    : "-";
 
+function getWorkerName(worker, language) {
+  if (language === "te") {
+    return worker.name_te || worker.name;
+  }
+
+  if (language === "kn") {
+    return worker.name_kn || worker.name;
+  }
+
+  return worker.name;
+}
+
+function Login() {
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -238,6 +259,7 @@ function Dashboard({
     loadData();
   }, []);
 
+
   function showToast(message, isError = false) {
     setToast(`${isError ? "Error: " : ""}${message}`);
     window.setTimeout(() => setToast(""), 3500);
@@ -265,7 +287,7 @@ function Dashboard({
           onChange={onLanguageChange}
         />
 
-        <nav>
+  <nav>
   <NavItem
     icon={<LayoutDashboard />}
     label={t(language, "dashboard")}
@@ -335,42 +357,51 @@ function Dashboard({
 
         <div className="content">
           {page === "dashboard" && (
-            <DashboardHome
-              settlements={settlements}
-              workers={activeWorkers}
-              onNew={() => setPage("settlement")}
-              onHistory={() => setPage("history")}
-            />
+           <DashboardHome
+          settlements={settlements}
+          workers={activeWorkers}
+          onNew={() => setPage("settlement")}
+          onHistory={() => setPage("history")}
+          language={language}
+           />
           )}
 
           {page === "settlement" && (
             <SettlementPage
-              workers={activeWorkers}
-              onSaved={async () => {
-                await loadData();
-                setPage("history");
-                showToast("Settlement saved successfully.");
+             workers={activeWorkers}
+             onSaved={async () => {
+             await loadData();
+             setPage("history");
+             showToast(t(language, "settlementSaved"));
               }}
-              showToast={showToast}
+            showToast={showToast}
+            language={language}
             />
           )}
 
           {page === "history" && (
             <HistoryPage
-              settlements={settlements}
-              onOpen={setSelectedSettlement}
-            />
+  settlements={settlements}
+  onOpen={setSelectedSettlement}
+  language={language}
+/>
           )}
 
           {page === "workers" && (
             <WorkersPage
-              workers={workers}
-              reload={loadData}
-              showToast={showToast}
-            />
+  workers={workers}
+  reload={loadData}
+  showToast={showToast}
+  language={language}
+/>
           )}
 
-          {page === "reports" && <ReportsPage settlements={settlements} />}
+         {page === "reports" && (
+  <ReportsPage
+    settlements={settlements}
+    language={language}
+  />
+)}
         </div>
       </main>
 
@@ -397,7 +428,13 @@ function NavItem({ icon, label, active, onClick }) {
   );
 }
 
-function DashboardHome({ settlements, workers, onNew, onHistory }) {
+function DashboardHome({
+  settlements,
+  workers,
+  onNew,
+  onHistory,
+  language,
+}) {
   const totals = useMemo(
     () =>
       settlements.reduce(
@@ -485,8 +522,10 @@ function DashboardHome({ settlements, workers, onNew, onHistory }) {
           <div className="worker-mini-list">
             {workers.slice(0, 10).map((worker) => (
               <div className="worker-mini" key={worker.id}>
-                <span className="avatar small">{worker.name[0].toUpperCase()}</span>
-                <span>{worker.name}</span>
+                <span className="avatar small">
+  {getWorkerName(worker, language)[0]?.toUpperCase()}
+</span>
+<span>{getWorkerName(worker, language)}</span>
               </div>
             ))}
             {workers.length > 10 && <span className="muted">+{workers.length - 10} more</span>}
@@ -507,7 +546,12 @@ function StatCard({ icon, label, value }) {
   );
 }
 
-function SettlementPage({ workers, onSaved, showToast }) {
+function SettlementPage({
+  workers,
+  onSaved,
+  showToast,
+  language,
+}) {
   const [workDate, setWorkDate] = useState(dateISO());
   const [income, setIncome] = useState("");
   const [diesel, setDiesel] = useState("");
@@ -640,7 +684,7 @@ function SettlementPage({ workers, onSaved, showToast }) {
                 onClick={() => toggleWorker(worker.id)}
               >
                 <span className="check-dot">{selected ? "✓" : ""}</span>
-                {worker.name}
+                {getWorkerName(worker, language)}
               </button>
             );
           })}
@@ -845,7 +889,12 @@ function Detail({ label, value }) {
   );
 }
 
-function WorkersPage({ workers, reload, showToast }) {
+function WorkersPage({
+  workers,
+  reload,
+  showToast,
+  language,
+}) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
@@ -928,9 +977,9 @@ function WorkersPage({ workers, reload, showToast }) {
           {workers.map((worker) => (
             <div className={`worker-row ${worker.active ? "" : "inactive"}`} key={worker.id}>
               <div className="worker-info">
-                <span className="avatar small">{worker.name[0].toUpperCase()}</span>
+                <span className="avatar small">{getWorkerName(worker, language)[0]?.toUpperCase()}</span>
                 <div>
-                  <strong>{worker.name}</strong>
+                  <strong>{getWorkerName(worker, language)}</strong>
                   <span>{worker.phone || "No phone number"}</span>
                 </div>
               </div>

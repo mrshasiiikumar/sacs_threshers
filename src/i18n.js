@@ -131,7 +131,14 @@ export const translations = {
       "Diesel expense cannot be greater than income.",
     selectAtLeastOne:
       "Select at least one worker.",
+    workerNameEnglish: "English Name",
+workerNameTelugu: "Telugu Name",
+workerNameKannada: "Kannada Name",
+enterEnglishName: "Enter English name",
+enterTeluguName: "Enter Telugu name",
+enterKannadaName: "Enter Kannada name",
   },
+  
 
   te: {
     dashboard: "డాష్‌బోర్డ్",
@@ -261,6 +268,12 @@ export const translations = {
       "డీజిల్ ఖర్చు ఆదాయం కంటే ఎక్కువగా ఉండకూడదు.",
     selectAtLeastOne:
       "కనీసం ఒక కార్మికుడిని ఎంచుకోండి.",
+      workerNameEnglish: "ఇంగ్లీష్ పేరు",
+workerNameTelugu: "తెలుగు పేరు",
+workerNameKannada: "కన్నడ పేరు",
+enterEnglishName: "ఇంగ్లీష్ పేరు నమోదు చేయండి",
+enterTeluguName: "తెలుగు పేరు నమోదు చేయండి",
+enterKannadaName: "కన్నడ పేరు నమోదు చేయండి",
   },
 
   kn: {
@@ -391,6 +404,12 @@ export const translations = {
       "ಡೀಸೆಲ್ ಖರ್ಚು ಆದಾಯಕ್ಕಿಂತ ಹೆಚ್ಚಿರಬಾರದು.",
     selectAtLeastOne:
       "ಕನಿಷ್ಠ ಒಬ್ಬ ಕಾರ್ಮಿಕರನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
+      workerNameEnglish: "ಇಂಗ್ಲಿಷ್ ಹೆಸರು",
+workerNameTelugu: "ತೆಲುಗು ಹೆಸರು",
+workerNameKannada: "ಕನ್ನಡ ಹೆಸರು",
+enterEnglishName: "ಇಂಗ್ಲಿಷ್ ಹೆಸರನ್ನು ನಮೂದಿಸಿ",
+enterTeluguName: "ತೆಲುಗು ಹೆಸರನ್ನು ನಮೂದಿಸಿ",
+enterKannadaName: "ಕನ್ನಡ ಹೆಸರನ್ನು ನಮೂದಿಸಿ",
   },
 };
 
