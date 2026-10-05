@@ -965,22 +965,7 @@ function WorkersPage({ workers, reload, showToast, language }) {
               required
             />
           </label>
-          <label>
-            {t(language, "workerNameTelugu")}
-            <input
-              value={nameTe}
-              onChange={(event) => setNameTe(event.target.value)}
-              placeholder={t(language, "enterTeluguName")}
-            />
-          </label>
-          <label>
-            {t(language, "workerNameKannada")}
-            <input
-              value={nameKn}
-              onChange={(event) => setNameKn(event.target.value)}
-              placeholder={t(language, "enterKannadaName")}
-            />
-          </label>
+         
           <label>
             {t(language, "phoneOptional")}
             <input
