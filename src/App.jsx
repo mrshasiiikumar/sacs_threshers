@@ -1,5 +1,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
+import { getLanguage, setLanguage, t } from "./i18n";
 import {
   BarChart3,
   CalendarDays,
@@ -46,24 +47,12 @@ function App() {
   const [session, setSession] = useState(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoadingAuth(false);
-    });
+  const [language, setLanguageState] = useState(getLanguage());
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => {
-      setSession(next);
-    });
-
-    return () => listener.subscription.unsubscribe();
-  }, []);
-
-  if (loadingAuth) return <FullScreenLoader />;
-  if (!session) return <Login />;
-
-  return <Dashboard session={session} />;
-}
+  function changeLanguage(lang) {
+    setLanguage(lang);
+    setLanguageState(lang);
+  }
 
 function Login() {
   const [email, setEmail] = useState("");
