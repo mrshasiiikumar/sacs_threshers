@@ -230,37 +230,68 @@ function Dashboard({
   onLanguageChange,
 }) {
   const [page, setPage] = useState("dashboard");
-  const [workers, setWorkers] = useState([]);
-  const [settlements, setSettlements] = useState([]);
-  const [selectedSettlement, setSelectedSettlement] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState("");
+const [workers, setWorkers] = useState([]);
+const [settlements, setSettlements] = useState([]);
+const [selectedSettlement, setSelectedSettlement] = useState(null);
+const [loading, setLoading] = useState(true);
+const [toast, setToast] = useState("");
+const [businessId, setBusinessId] = useState(null);
 
   async function loadData() {
-    setLoading(true);
+  setLoading(true);
 
-    const [{ data: workerData, error: workerError }, { data: settlementData, error: settlementError }] =
-      await Promise.all([
-        supabase.from("workers").select("*").order("name"),
-        supabase
-          .from("settlements")
-          .select(
-            "id, work_date, total_income, diesel_expense, net_amount, owner_share, workers_share, worker_count, notes, created_at, settlement_workers(id, worker_id, worker_name, worker_name_te, worker_name_kn, wage_amount, payment_status, paid_at)"
-          )
-          .order("work_date", { ascending: false }),
-      ]);
+  // Get the business assigned to the logged-in user
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("business_id")
+    .eq("id", session.user.id)
+    .single();
 
-    if (workerError) showToast(workerError.message, true);
-    if (settlementError) showToast(settlementError.message, true);
-
-    setWorkers(workerData || []);
-    setSettlements(settlementData || []);
+  if (profileError) {
+    showToast(profileError.message, true);
     setLoading(false);
+    return;
   }
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  if (!profile?.business_id) {
+    showToast("No business is assigned to this user", true);
+    setLoading(false);
+    return;
+  }
+
+  const currentBusinessId = profile.business_id;
+  setBusinessId(currentBusinessId);
+
+  const [
+    { data: workerData, error: workerError },
+    { data: settlementData, error: settlementError },
+  ] = await Promise.all([
+    supabase
+      .from("workers")
+      .select("*")
+      .eq("business_id", currentBusinessId)
+      .order("name"),
+
+    supabase
+      .from("settlements")
+      .select(
+        "id, business_id, work_date, total_income, diesel_expense, net_amount, owner_share, workers_share, worker_count, notes, created_at, settlement_workers(id, worker_id, worker_name, worker_name_te, worker_name_kn, wage_amount, payment_status, paid_at)"
+      )
+      .eq("business_id", currentBusinessId)
+      .order("work_date", { ascending: false }),
+  ]);
+
+  if (workerError) showToast(workerError.message, true);
+  if (settlementError) showToast(settlementError.message, true);
+
+  setWorkers(workerData || []);
+  setSettlements(settlementData || []);
+  setLoading(false);
+}
+
+ useEffect(() => {
+  loadData();
+}, [session.user.id]);
 
 
   function showToast(message, isError = false) {
@@ -391,11 +422,12 @@ function Dashboard({
           )}
 
           {page === "workers" && (
-            <WorkersPage
+           <WorkersPage
   workers={workers}
   reload={loadData}
   showToast={showToast}
   language={language}
+  businessId={businessId}
 />
           )}
 
@@ -887,7 +919,13 @@ function Detail({ label, value }) {
   );
 }
 
-function WorkersPage({ workers, reload, showToast, language }) {
+function WorkersPage({
+  workers,
+  reload,
+  showToast,
+  language,
+  businessId,
+}) {
   const [name, setName] = useState("");
   const [nameTe, setNameTe] = useState("");
   const [nameKn, setNameKn] = useState("");
@@ -900,11 +938,12 @@ function WorkersPage({ workers, reload, showToast, language }) {
     setBusy(true);
 
     const { error } = await supabase.from("workers").insert({
-      name: name.trim(),
-      name_te: nameTe.trim() || null,
-      name_kn: nameKn.trim() || null,
-      phone: phone.trim() || null,
-    });
+  business_id: businessId,
+  name: name.trim(),
+  name_te: nameTe.trim() || null,
+  name_kn: nameKn.trim() || null,
+  phone: phone.trim() || null,
+});
 
     if (error) {
       showToast(error.message, true);
