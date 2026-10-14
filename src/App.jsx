@@ -316,7 +316,7 @@ const [businessId, setBusinessId] = useState(null);
           </div>
         </div>
 
-        <LanguageSelector
+        <LanguageSelectori
           language={language}
           onChange={onLanguageChange}
         />
